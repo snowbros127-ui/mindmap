@@ -62,19 +62,49 @@ export function exportToJson(mindmap: MindMap, filename = 'mindmap.json') {
   link.remove();
 }
 
+/**
+ * Encodes MindMap into a 100% URL-safe compressed Base64URL string
+ */
 export function encodeShareableUrl(mindmap: MindMap): string {
-  const jsonStr = JSON.stringify(mindmap);
-  return LZString.compressToEncodedURIComponent(jsonStr);
+  try {
+    const jsonStr = JSON.stringify(mindmap);
+    const compressedBase64 = LZString.compressToBase64(jsonStr);
+    // Convert Base64 to URL-safe Base64URL (replace + with -, / with _, drop padding =)
+    return compressedBase64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch (e) {
+    console.error('Error encoding shareable URL:', e);
+    return '';
+  }
 }
 
+/**
+ * Decodes compressed Base64URL string back into MindMap with multiple fallbacks
+ */
 export function decodeShareableUrl(encodedStr: string): MindMap | null {
+  if (!encodedStr) return null;
+
   try {
-    const decompressed = LZString.decompressFromEncodedURIComponent(encodedStr);
+    const raw = decodeURIComponent(encodedStr).trim();
+
+    // 1. Try URL-safe Base64URL LZString decompression
+    let base64 = raw.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4 !== 0) {
+      base64 += '=';
+    }
+
+    const decompressed = LZString.decompressFromBase64(base64);
     if (decompressed) {
       return JSON.parse(decompressed) as MindMap;
     }
-    // Fallback to legacy base64 decoding
-    const jsonStr = decodeURIComponent(atob(encodedStr));
+
+    // 2. Try direct EncodedURIComponent LZString decompression
+    const decompressedUri = LZString.decompressFromEncodedURIComponent(raw);
+    if (decompressedUri) {
+      return JSON.parse(decompressedUri) as MindMap;
+    }
+
+    // 3. Fallback: Legacy uncompressed base64
+    const jsonStr = decodeURIComponent(atob(base64));
     return JSON.parse(jsonStr) as MindMap;
   } catch (error) {
     console.error('Error decoding shareable URL:', error);

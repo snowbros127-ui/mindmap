@@ -23,7 +23,10 @@ export default function SharePage({ params }: SharePageProps) {
   const [isValid, setIsValid] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const decoded = decodeShareableUrl(shareId);
+    const rawPayload = typeof window !== 'undefined' ? window.location.pathname.split('/share/')[1] : shareId;
+    const targetPayload = rawPayload || shareId;
+    const decoded = decodeShareableUrl(targetPayload);
+
     if (decoded) {
       setMindMap(decoded, true);
       setIsValid(true);
