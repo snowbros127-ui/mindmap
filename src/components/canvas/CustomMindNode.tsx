@@ -3,7 +3,7 @@ import { Handle, Position, NodeProps } from '@xyflow/react';
 import { CustomNodeData, NodeColorPreset } from '@/types/mindmap';
 import { useMindMapStore } from '@/store/useMindMapStore';
 import { clsx } from 'clsx';
-import { Plus, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, ChevronRight, Square } from 'lucide-react';
 
 const COLOR_PRESETS: Record<NodeColorPreset, { bg: string; border: string; text: string; badge: string }> = {
   indigo: {
@@ -67,6 +67,7 @@ export const CustomMindNode = memo(({ id, data, selected }: NodeProps) => {
   const {
     edges,
     updateNodeData,
+    addFreeNode,
     addChildNode,
     addSiblingNode,
     deleteSelectedNodes,
@@ -164,9 +165,11 @@ export const CustomMindNode = memo(({ id, data, selected }: NodeProps) => {
         nodeData.isRoot && 'shadow-indigo-500/30 border-2 font-bold'
       )}
     >
-      {/* Handles */}
-      <Handle type="target" position={Position.Left} className="!w-3 !h-3 !bg-blue-400 !border-2 !border-slate-900" />
-      <Handle type="source" position={Position.Right} className="!w-3 !h-3 !bg-blue-400 !border-2 !border-slate-900" />
+      {/* Target & Source Handles on 4 sides for free multi-directional connections */}
+      <Handle type="target" position={Position.Left} id="left-in" className="!w-3 !h-3 !bg-blue-400 !border-2 !border-slate-900" />
+      <Handle type="source" position={Position.Right} id="right-out" className="!w-3 !h-3 !bg-blue-400 !border-2 !border-slate-900" />
+      <Handle type="target" position={Position.Top} id="top-in" className="!w-3 !h-3 !bg-purple-400 !border-2 !border-slate-900" />
+      <Handle type="source" position={Position.Bottom} id="bottom-out" className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-slate-900" />
 
       {/* Content */}
       <div className="flex items-center gap-2">
@@ -208,6 +211,17 @@ export const CustomMindNode = memo(({ id, data, selected }: NodeProps) => {
       {/* Quick Action Overlay on Select */}
       {selected && !isReadOnly && !isEditing && (
         <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-slate-900/95 border border-slate-700/80 rounded-xl p-1 shadow-xl text-xs z-50 backdrop-blur-md">
+          <button
+            title="독립 박스 추가"
+            onClick={(e) => {
+              e.stopPropagation();
+              addFreeNode();
+            }}
+            className="flex items-center gap-1 px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded transition active:scale-95"
+          >
+            <Square className="w-3.5 h-3.5" />
+            <span>독립</span>
+          </button>
           <button
             title="자식 노드 추가 (Tab)"
             onClick={(e) => {

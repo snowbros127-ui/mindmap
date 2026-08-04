@@ -72,6 +72,7 @@ interface MindMapStoreState {
   toggleCollapseNode: (id: string) => void;
 
   // Shortcut Actions
+  addFreeNode: (position?: { x: number; y: number }) => void;
   addChildNode: (parentNodeId?: string) => void;
   addSiblingNode: (currentNodeId?: string) => void;
   deleteSelectedNodes: () => void;
@@ -262,7 +263,7 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
   redo: () => {
     const { historyIndex, history } = get();
     if (historyIndex < history.length - 1) {
-      const nextStep = history[historyIndex + 1];
+      const nextStep = history[historyIndex - 1];
       set({
         nodes: JSON.parse(JSON.stringify(nextStep.nodes)),
         edges: JSON.parse(JSON.stringify(nextStep.edges)),
@@ -275,7 +276,6 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
   onNodesChange: (changes) => {
     const updatedNodes = applyNodeChanges(changes, get().nodes as any) as CustomNode[];
     set({ nodes: updatedNodes });
-    // Broadcast position updates on drag end
     const isDragEnd = changes.some((c) => c.type === 'position' && !c.dragging);
     if (isDragEnd) {
       (get() as any).broadcastNodeState();
@@ -393,6 +393,34 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
     });
 
     set({ nodes: updatedNodes, edges: updatedEdges });
+    get().saveHistoryStep();
+  },
+
+  addFreeNode: (customPos) => {
+    const { nodes, selectedNodeId } = get();
+    const newId = `node-${Date.now()}`;
+    const selectedNode = nodes.find((n) => n.id === selectedNodeId);
+
+    // Position near selected node or center
+    const posX = customPos?.x ?? (selectedNode ? selectedNode.position.x + 200 : Math.random() * 100 - 50);
+    const posY = customPos?.y ?? (selectedNode ? selectedNode.position.y + 120 : Math.random() * 100 - 50);
+
+    const newNode: CustomNode = {
+      id: newId,
+      type: 'mindMapNode',
+      position: { x: posX, y: posY },
+      data: {
+        label: '독립 박스 노드 📦',
+        emoji: '📦',
+        colorPreset: 'violet',
+        fontSize: 'md',
+      },
+    };
+
+    set({
+      nodes: [...nodes, newNode],
+      selectedNodeId: newId,
+    });
     get().saveHistoryStep();
   },
 

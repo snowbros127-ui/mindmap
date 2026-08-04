@@ -1,12 +1,13 @@
 import React from 'react';
 import { useMindMapStore } from '@/store/useMindMapStore';
 import { useReactFlow } from '@xyflow/react';
-import { Plus, Trash2, Undo2, Redo2, LayoutGrid, Maximize2 } from 'lucide-react';
+import { Plus, Trash2, Undo2, Redo2, LayoutGrid, Maximize2, Square } from 'lucide-react';
 
 export function TouchToolbar() {
   const {
     selectedNodeId,
     nodes,
+    addFreeNode,
     addChildNode,
     addSiblingNode,
     deleteSelectedNodes,
@@ -24,9 +25,21 @@ export function TouchToolbar() {
 
   return (
     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-slate-900/95 border border-slate-700/80 backdrop-blur-2xl p-2 rounded-2xl shadow-2xl touch-none select-none">
+      {/* Free Node creation button */}
+      {!isReadOnly && (
+        <button
+          onClick={() => addFreeNode()}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-purple-600 hover:bg-purple-500 active:scale-95 text-white rounded-xl shadow-lg transition"
+          title="독립 박스 노드 생성"
+        >
+          <Square className="w-4 h-4" />
+          <span>+ 독립 박스</span>
+        </button>
+      )}
+
       {/* Node action buttons when node selected */}
       {!isReadOnly && selectedNode && (
-        <div className="flex items-center gap-1.5 border-r border-slate-800 pr-2">
+        <div className="flex items-center gap-1.5 border-r border-slate-800 pr-2 border-l pl-2 border-slate-800">
           <button
             onClick={() => addChildNode(selectedNodeId || undefined)}
             className="flex items-center gap-1 px-3 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-500 active:scale-95 text-white rounded-xl shadow-lg transition"
