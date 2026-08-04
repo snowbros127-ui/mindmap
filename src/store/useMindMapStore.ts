@@ -76,7 +76,7 @@ interface MindMapStoreState {
   addChildNode: (parentNodeId?: string) => void;
   addSiblingNode: (currentNodeId?: string) => void;
   deleteSelectedNodes: () => void;
-  autoLayout: (direction?: 'LR' | 'TB') => void;
+  autoLayout: (direction?: 'BOTH' | 'LR' | 'TB') => void;
 
   // Undo / Redo
   saveHistoryStep: () => void;
@@ -94,13 +94,13 @@ const DEFAULT_INITIAL_NODES: CustomNode[] = [
   {
     id: 'node-sub-1',
     type: 'mindMapNode',
-    position: { x: 260, y: -100 },
+    position: { x: -280, y: 0 },
     data: { label: '핵심 개념 1 📚', emoji: '📚', colorPreset: 'emerald', fontSize: 'lg' },
   },
   {
     id: 'node-sub-2',
     type: 'mindMapNode',
-    position: { x: 260, y: 100 },
+    position: { x: 280, y: 0 },
     data: { label: '핵심 개념 2 🧪', emoji: '🧪', colorPreset: 'cyan', fontSize: 'lg' },
   },
 ];
@@ -129,7 +129,7 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
   collaborators: {},
 
   setMindMap: (mindMap, readOnly = false) => {
-    const layouted = getLayoutedElements(mindMap.nodes, mindMap.edges, 'LR');
+    const layouted = getLayoutedElements(mindMap.nodes, mindMap.edges, 'BOTH');
     set({
       mindMapId: mindMap.id,
       title: mindMap.title,
@@ -263,7 +263,7 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
   redo: () => {
     const { historyIndex, history } = get();
     if (historyIndex < history.length - 1) {
-      const nextStep = history[historyIndex - 1];
+      const nextStep = history[historyIndex + 1];
       set({
         nodes: JSON.parse(JSON.stringify(nextStep.nodes)),
         edges: JSON.parse(JSON.stringify(nextStep.edges)),
@@ -401,9 +401,8 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
     const newId = `node-${Date.now()}`;
     const selectedNode = nodes.find((n) => n.id === selectedNodeId);
 
-    // Position near selected node or center
-    const posX = customPos?.x ?? (selectedNode ? selectedNode.position.x + 200 : Math.random() * 100 - 50);
-    const posY = customPos?.y ?? (selectedNode ? selectedNode.position.y + 120 : Math.random() * 100 - 50);
+    const posX = customPos?.x ?? (selectedNode ? selectedNode.position.x - 200 : -100);
+    const posY = customPos?.y ?? (selectedNode ? selectedNode.position.y + 120 : 0);
 
     const newNode: CustomNode = {
       id: newId,
@@ -436,11 +435,15 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
     const childCount = edges.filter((e) => e.source === parentId).length;
     const parentColor = PRESET_COLORS[parentNode.data.colorPreset || 'indigo'] || '#3b82f6';
 
+    // Bi-directional direction check: Left side expands leftwards (-250), right side expands rightwards (+250)
+    const isLeftSide = parentNode.position.x < -20;
+    const xOffset = isLeftSide ? -250 : 250;
+
     const newNode: CustomNode = {
       id: newId,
       type: 'mindMapNode',
       position: {
-        x: parentNode.position.x + 250,
+        x: parentNode.position.x + xOffset,
         y: parentNode.position.y + childCount * 70 - 20,
       },
       data: {
@@ -536,7 +539,7 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
     get().saveHistoryStep();
   },
 
-  autoLayout: (direction = 'LR') => {
+  autoLayout: (direction = 'BOTH') => {
     const { nodes, edges } = get();
     const layouted = getLayoutedElements(nodes, edges, direction);
     set({ nodes: layouted.nodes, edges: layouted.edges });

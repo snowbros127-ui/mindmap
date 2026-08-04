@@ -14,8 +14,122 @@ const PRESET_COLORS: Record<string, string> = {
 export function getLayoutedElements(
   nodes: CustomNode[],
   edges: CustomEdge[],
-  direction: 'TB' | 'LR' | 'RL' | 'BT' = 'LR'
+  direction: 'BOTH' | 'LR' | 'TB' = 'BOTH'
 ): { nodes: CustomNode[]; edges: CustomEdge[] } {
+  const visibleNodes = nodes.filter((n) => !n.hidden);
+  const visibleEdges = edges.filter((e) => !e.hidden);
+
+  const rootNode = visibleNodes.find((n) => n.data?.isRoot) || visibleNodes[0];
+
+  if (!rootNode || direction === 'LR' || direction === 'TB') {
+    // Standard Dagre directional layout
+    return runDagreLayout(nodes, edges, direction === 'TB' ? 'TB' : 'LR');
+  }
+
+  // Symmetrical Bi-Directional Layout ('BOTH')
+  // 1. Root at center (0, 0)
+  const rootId = rootNode.id;
+  const mainBranchEdges = visibleEdges.filter((e) => e.source === rootId);
+  const mainBranchIds = mainBranchEdges.map((e) => e.target);
+
+  const leftBranchIds: string[] = [];
+  const rightBranchIds: string[] = [];
+
+  mainBranchIds.forEach((id, idx) => {
+    if (idx % 2 === 0) {
+      rightBranchIds.push(id);
+    } else {
+      leftBranchIds.push(id);
+    }
+  });
+
+  // Helper to collect all node IDs in a sub-tree
+  const getSubTreeIds = (startIds: string[]): Set<string> => {
+    const subTree = new Set<string>(startIds);
+    let queue = [...startIds];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const childEdges = visibleEdges.filter((e) => e.source === current);
+      childEdges.forEach((e) => {
+        if (!subTree.has(e.target)) {
+          subTree.add(e.target);
+          queue.push(e.target);
+        }
+      });
+    }
+    return subTree;
+  };
+
+  const rightSubTreeIds = getSubTreeIds(rightBranchIds);
+  const leftSubTreeIds = getSubTreeIds(leftBranchIds);
+
+  const rightNodes = visibleNodes.filter((n) => rightSubTreeIds.has(n.id));
+  const rightEdges = visibleEdges.filter((e) => rightSubTreeIds.has(e.source) && rightSubTreeIds.has(e.target));
+
+  const leftNodes = visibleNodes.filter((n) => leftSubTreeIds.has(n.id));
+  const leftEdges = visibleEdges.filter((e) => leftSubTreeIds.has(e.source) && leftSubTreeIds.has(e.target));
+
+  // Run Dagre for Right side (LR)
+  const layoutedRight = runDagreSubLayout(rightNodes, rightEdges, 'LR');
+
+  // Run Dagre for Left side (RL)
+  const layoutedLeft = runDagreSubLayout(leftNodes, leftEdges, 'RL');
+
+  // Map positions
+  const nodePositionMap = new Map<string, { x: number; y: number }>();
+  nodePositionMap.set(rootId, { x: 0, y: 0 });
+
+  // Place Right side
+  layoutedRight.nodes.forEach((n) => {
+    nodePositionMap.set(n.id, {
+      x: n.position.x + 280,
+      y: n.position.y,
+    });
+  });
+
+  // Place Left side
+  layoutedLeft.nodes.forEach((n) => {
+    nodePositionMap.set(n.id, {
+      x: -n.position.x - 280,
+      y: n.position.y,
+    });
+  });
+
+  // Assign updated positions to all nodes
+  const updatedNodes = nodes.map((node) => {
+    if (nodePositionMap.has(node.id)) {
+      return {
+        ...node,
+        position: nodePositionMap.get(node.id)!,
+      };
+    }
+    return node;
+  });
+
+  // Color code edges to match parent node colors
+  const nodeColorMap = new Map<string, string>();
+  nodes.forEach((n) => {
+    const preset = n.data.colorPreset || 'indigo';
+    nodeColorMap.set(n.id, PRESET_COLORS[preset] || '#3b82f6');
+  });
+
+  const coloredEdges = edges.map((edge) => {
+    const parentColor = nodeColorMap.get(edge.source) || '#3b82f6';
+    return {
+      ...edge,
+      style: {
+        ...edge.style,
+        stroke: parentColor,
+        strokeWidth: 2.5,
+      },
+    };
+  });
+
+  return { nodes: updatedNodes, edges: coloredEdges };
+}
+
+function runDagreLayout(nodes: CustomNode[], edges: CustomEdge[], rankdir: 'LR' | 'TB') {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
@@ -23,12 +137,11 @@ export function getLayoutedElements(
   const nodeHeight = 65;
 
   dagreGraph.setGraph({
-    rankdir: direction,
+    rankdir,
     nodesep: 45,
-    ranksep: 110,
+    ranksep: 120,
   });
 
-  // Filter out hidden nodes if collapsed
   const visibleNodes = nodes.filter((n) => !n.hidden);
   const visibleEdges = edges.filter((e) => !e.hidden);
 
@@ -56,7 +169,6 @@ export function getLayoutedElements(
     };
   });
 
-  // Color code edges to match their parent node color to eliminate visual clutter
   const nodeColorMap = new Map<string, string>();
   nodes.forEach((n) => {
     const preset = n.data.colorPreset || 'indigo';
@@ -76,4 +188,43 @@ export function getLayoutedElements(
   });
 
   return { nodes: layoutedNodes, edges: coloredEdges };
+}
+
+function runDagreSubLayout(nodes: CustomNode[], edges: CustomEdge[], rankdir: 'LR' | 'RL') {
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+  const nodeWidth = 230;
+  const nodeHeight = 65;
+
+  dagreGraph.setGraph({
+    rankdir: 'LR',
+    nodesep: 50,
+    ranksep: 110,
+  });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    if (!nodeWithPosition) return node;
+
+    return {
+      ...node,
+      position: {
+        x: nodeWithPosition.x - nodeWidth / 2,
+        y: nodeWithPosition.y - nodeHeight / 2,
+      },
+    };
+  });
+
+  return { nodes: layoutedNodes, edges };
 }
