@@ -1,4 +1,8 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useDashboardStore } from '@/store/useDashboardStore';
 import {
   Brain,
   Sparkles,
@@ -6,10 +10,17 @@ import {
   Zap,
   Share2,
   BookOpen,
-  Layers,
 } from 'lucide-react';
 
 export default function LandingPage() {
+  const router = useRouter();
+  const { createEmptyMap } = useDashboardStore();
+
+  const handleCreateBlankMap = () => {
+    const newMap = createEmptyMap();
+    router.push(`/editor/${newMap.id}`);
+  };
+
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white">
       {/* Background ambient lighting */}
@@ -65,13 +76,13 @@ export default function LandingPage() {
             <span>마인드맵 대시보드 시작하기</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
-          <Link
-            href="/editor/new-map"
-            className="w-full sm:w-auto px-8 py-4 text-sm font-bold bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-2xl border border-slate-800 hover:border-slate-700 shadow-xl transition duration-200 flex items-center justify-center gap-2"
+          <button
+            onClick={handleCreateBlankMap}
+            className="w-full sm:w-auto px-8 py-4 text-sm font-bold bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-2xl border border-slate-800 hover:border-slate-700 shadow-xl transition duration-200 flex items-center justify-center gap-2 cursor-pointer"
           >
             <Zap className="w-4 h-4 text-amber-400" />
             <span>빈 캔버스 만들기</span>
-          </Link>
+          </button>
         </div>
 
         {/* Features Grid */}
