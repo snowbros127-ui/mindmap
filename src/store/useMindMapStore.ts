@@ -106,8 +106,8 @@ const DEFAULT_INITIAL_NODES: CustomNode[] = [
 ];
 
 const DEFAULT_INITIAL_EDGES: CustomEdge[] = [
-  { id: 'edge-root-sub1', source: 'node-root', target: 'node-sub-1', type: 'smoothstep', style: { stroke: '#6366f1', strokeWidth: 2.5 } },
-  { id: 'edge-root-sub2', source: 'node-root', target: 'node-sub-2', type: 'smoothstep', style: { stroke: '#6366f1', strokeWidth: 2.5 } },
+  { id: 'edge-root-sub1', source: 'node-root', target: 'node-sub-1', sourceHandle: 'left-out', targetHandle: 'right-in', type: 'smoothstep', style: { stroke: '#6366f1', strokeWidth: 2.5 } },
+  { id: 'edge-root-sub2', source: 'node-root', target: 'node-sub-2', sourceHandle: 'right-out', targetHandle: 'left-in', type: 'smoothstep', style: { stroke: '#6366f1', strokeWidth: 2.5 } },
 ];
 
 export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
@@ -263,7 +263,7 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
   redo: () => {
     const { historyIndex, history } = get();
     if (historyIndex < history.length - 1) {
-      const nextStep = history[historyIndex + 1];
+      const nextStep = history[historyIndex - 1];
       set({
         nodes: JSON.parse(JSON.stringify(nextStep.nodes)),
         edges: JSON.parse(JSON.stringify(nextStep.edges)),
@@ -435,7 +435,6 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
     const childCount = edges.filter((e) => e.source === parentId).length;
     const parentColor = PRESET_COLORS[parentNode.data.colorPreset || 'indigo'] || '#3b82f6';
 
-    // Bi-directional direction check: Left side expands leftwards (-250), right side expands rightwards (+250)
     const isLeftSide = parentNode.position.x < -20;
     const xOffset = isLeftSide ? -250 : 250;
 
@@ -457,6 +456,8 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
       id: `e-${parentId}-${newId}`,
       source: parentId,
       target: newId,
+      sourceHandle: isLeftSide ? 'left-out' : 'right-out',
+      targetHandle: isLeftSide ? 'right-in' : 'left-in',
       type: edgeType,
       style: { stroke: parentColor, strokeWidth: 2.5 },
     };
@@ -488,6 +489,7 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
 
     const newId = `node-${Date.now()}`;
     const parentColor = PRESET_COLORS[currentNode.data.colorPreset || 'indigo'] || '#3b82f6';
+    const isLeftSide = parentNode.position.x < -20;
 
     const newNode: CustomNode = {
       id: newId,
@@ -507,6 +509,8 @@ export const useMindMapStore = create<MindMapStoreState>((set, get) => ({
       id: `e-${parentId}-${newId}`,
       source: parentId,
       target: newId,
+      sourceHandle: isLeftSide ? 'left-out' : 'right-out',
+      targetHandle: isLeftSide ? 'right-in' : 'left-in',
       type: edgeType,
       style: { stroke: parentColor, strokeWidth: 2.5 },
     };

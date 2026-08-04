@@ -165,10 +165,21 @@ export const CustomMindNode = memo(({ id, data, selected }: NodeProps) => {
         nodeData.isRoot && 'shadow-indigo-500/30 border-2 font-bold'
       )}
     >
-      {/* Target & Source Handles on 4 sides for free multi-directional connections */}
+      {/* Both Target & Source Handles on Left, Right, Top, Bottom for seamless bi-directional connections */}
+      {/* Left side handles */}
       <Handle type="target" position={Position.Left} id="left-in" className="!w-3 !h-3 !bg-blue-400 !border-2 !border-slate-900" />
+      <Handle type="source" position={Position.Left} id="left-out" className="!w-3 !h-3 !bg-blue-400 !border-2 !border-slate-900" />
+
+      {/* Right side handles */}
+      <Handle type="target" position={Position.Right} id="right-in" className="!w-3 !h-3 !bg-blue-400 !border-2 !border-slate-900" />
       <Handle type="source" position={Position.Right} id="right-out" className="!w-3 !h-3 !bg-blue-400 !border-2 !border-slate-900" />
+
+      {/* Top side handles */}
       <Handle type="target" position={Position.Top} id="top-in" className="!w-3 !h-3 !bg-purple-400 !border-2 !border-slate-900" />
+      <Handle type="source" position={Position.Top} id="top-out" className="!w-3 !h-3 !bg-purple-400 !border-2 !border-slate-900" />
+
+      {/* Bottom side handles */}
+      <Handle type="target" position={Position.Bottom} id="bottom-in" className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-slate-900" />
       <Handle type="source" position={Position.Bottom} id="bottom-out" className="!w-3 !h-3 !bg-emerald-400 !border-2 !border-slate-900" />
 
       {/* Content */}

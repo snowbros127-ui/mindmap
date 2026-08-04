@@ -22,12 +22,10 @@ export function getLayoutedElements(
   const rootNode = visibleNodes.find((n) => n.data?.isRoot) || visibleNodes[0];
 
   if (!rootNode || direction === 'LR' || direction === 'TB') {
-    // Standard Dagre directional layout
     return runDagreLayout(nodes, edges, direction === 'TB' ? 'TB' : 'LR');
   }
 
   // Symmetrical Bi-Directional Layout ('BOTH')
-  // 1. Root at center (0, 0)
   const rootId = rootNode.id;
   const mainBranchEdges = visibleEdges.filter((e) => e.source === rootId);
   const mainBranchIds = mainBranchEdges.map((e) => e.target);
@@ -43,7 +41,6 @@ export function getLayoutedElements(
     }
   });
 
-  // Helper to collect all node IDs in a sub-tree
   const getSubTreeIds = (startIds: string[]): Set<string> => {
     const subTree = new Set<string>(startIds);
     let queue = [...startIds];
@@ -70,17 +67,12 @@ export function getLayoutedElements(
   const leftNodes = visibleNodes.filter((n) => leftSubTreeIds.has(n.id));
   const leftEdges = visibleEdges.filter((e) => leftSubTreeIds.has(e.source) && leftSubTreeIds.has(e.target));
 
-  // Run Dagre for Right side (LR)
-  const layoutedRight = runDagreSubLayout(rightNodes, rightEdges, 'LR');
+  const layoutedRight = runDagreSubLayout(rightNodes, rightEdges);
+  const layoutedLeft = runDagreSubLayout(leftNodes, leftEdges);
 
-  // Run Dagre for Left side (RL)
-  const layoutedLeft = runDagreSubLayout(leftNodes, leftEdges, 'RL');
-
-  // Map positions
   const nodePositionMap = new Map<string, { x: number; y: number }>();
   nodePositionMap.set(rootId, { x: 0, y: 0 });
 
-  // Place Right side
   layoutedRight.nodes.forEach((n) => {
     nodePositionMap.set(n.id, {
       x: n.position.x + 280,
@@ -88,7 +80,6 @@ export function getLayoutedElements(
     });
   });
 
-  // Place Left side
   layoutedLeft.nodes.forEach((n) => {
     nodePositionMap.set(n.id, {
       x: -n.position.x - 280,
@@ -96,7 +87,6 @@ export function getLayoutedElements(
     });
   });
 
-  // Assign updated positions to all nodes
   const updatedNodes = nodes.map((node) => {
     if (nodePositionMap.has(node.id)) {
       return {
@@ -107,7 +97,6 @@ export function getLayoutedElements(
     return node;
   });
 
-  // Color code edges to match parent node colors
   const nodeColorMap = new Map<string, string>();
   nodes.forEach((n) => {
     const preset = n.data.colorPreset || 'indigo';
@@ -116,8 +105,12 @@ export function getLayoutedElements(
 
   const coloredEdges = edges.map((edge) => {
     const parentColor = nodeColorMap.get(edge.source) || '#3b82f6';
+    const isLeftEdge = leftSubTreeIds.has(edge.target) || leftBranchIds.includes(edge.target);
+
     return {
       ...edge,
+      sourceHandle: isLeftEdge ? 'left-out' : 'right-out',
+      targetHandle: isLeftEdge ? 'right-in' : 'left-in',
       style: {
         ...edge.style,
         stroke: parentColor,
@@ -179,6 +172,8 @@ function runDagreLayout(nodes: CustomNode[], edges: CustomEdge[], rankdir: 'LR' 
     const parentColor = nodeColorMap.get(edge.source) || '#3b82f6';
     return {
       ...edge,
+      sourceHandle: rankdir === 'TB' ? 'bottom-out' : 'right-out',
+      targetHandle: rankdir === 'TB' ? 'top-in' : 'left-in',
       style: {
         ...edge.style,
         stroke: parentColor,
@@ -190,7 +185,7 @@ function runDagreLayout(nodes: CustomNode[], edges: CustomEdge[], rankdir: 'LR' 
   return { nodes: layoutedNodes, edges: coloredEdges };
 }
 
-function runDagreSubLayout(nodes: CustomNode[], edges: CustomEdge[], rankdir: 'LR' | 'RL') {
+function runDagreSubLayout(nodes: CustomNode[], edges: CustomEdge[]) {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
