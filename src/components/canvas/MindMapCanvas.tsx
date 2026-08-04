@@ -8,10 +8,12 @@ import {
   Background,
   BackgroundVariant,
   NodeTypes,
+  EdgeTypes,
   ReactFlowProvider,
 } from '@xyflow/react';
 import { useMindMapStore } from '@/store/useMindMapStore';
 import { CustomMindNode } from './CustomMindNode';
+import { CustomMindEdge } from './CustomMindEdge';
 import { NodeStyleMenu } from './NodeStyleMenu';
 import { TouchToolbar } from './TouchToolbar';
 import { RemoteCursors } from './RemoteCursors';
@@ -31,6 +33,15 @@ export function MindMapCanvas() {
   const nodeTypes = useMemo<NodeTypes>(
     () => ({
       mindMapNode: CustomMindNode,
+    }),
+    []
+  );
+
+  const edgeTypes = useMemo<EdgeTypes>(
+    () => ({
+      smoothstep: CustomMindEdge,
+      bezier: CustomMindEdge,
+      straight: CustomMindEdge,
     }),
     []
   );
@@ -62,6 +73,7 @@ export function MindMapCanvas() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
