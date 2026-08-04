@@ -104,7 +104,7 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
     const duplicated: MindMap = {
       ...target,
       id: newId,
-      title: `${target.title} (Copy)`,
+      title: `${target.title} (사본)`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -140,14 +140,14 @@ export const useDashboardStore = create<DashboardStoreState>((set, get) => ({
         id: 'node-root',
         type: 'mindMapNode',
         position: { x: 0, y: 0 },
-        data: { label: 'New Learning Topic 💡', emoji: '💡', colorPreset: 'indigo', fontSize: 'xl', isRoot: true },
+        data: { label: '새 학습 주제 💡', emoji: '💡', colorPreset: 'indigo', fontSize: 'xl', isRoot: true },
       },
     ];
     const initialEdges: CustomEdge[] = [];
 
     const newMap: MindMap = {
       id: newId,
-      title: 'Untitled Mind Map',
+      title: '새 마인드맵',
       nodes: initialNodes,
       edges: initialEdges,
       createdAt: new Date().toISOString(),
